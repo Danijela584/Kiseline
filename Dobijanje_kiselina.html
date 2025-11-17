@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8">
+  <title>Kviz - Neorganske kiseline</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; }
+    .option { display:block; margin:10px auto; padding:10px; width:250px;
+      border:2px solid #333; cursor:pointer; border-radius:8px; transition:0.3s; }
+    .correct { background-color:#4CAF50; color:white; }
+    .wrong { background-color:#f44336; color:white; }
+    #reaction { margin-top:30px; display:none; }
+    canvas { margin-top:20px; }
+  </style>
+</head>
+<body>
+  <h2 id="question"></h2>
+  <div id="options"></div>
+  <div id="reaction">
+    <h3 id="reactionText"></h3>
+  </div>
+  <div id="final" style="display:none;">
+    <h2>🎉 Bravo! Čestitamo, tačno ste rešili svih 20 pitanja!</h2>
+    <canvas id="fireworks"></canvas>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+  <script>
+    const questions = [
+      {q:"Koji oksid sa vodom gradi sumporastu kiselinu (H₂SO₃)?",
+       options:["SO₂","SO₃","CO₂","N₂O₅","P₄O₁₀"], answer:"SO₂"},
+      {q:"Koji oksid sa vodom gradi sumpornu kiselinu (H₂SO₄)?",
+       options:["SO₂","SO₃","CO₂","N₂O₅","Cl₂O₇"], answer:"SO₃"},
+      {q:"Koji oksid sa vodom gradi ugljenu kiselinu (H₂CO₃)?",
+       options:["CO₂","SO₃","P₄O₁₀","Cl₂O₇","NO₂"], answer:"CO₂"},
+      {q:"Koji oksid sa vodom gradi azotnu kiselinu (HNO₃)?",
+       options:["N₂O₅","SO₂","CO₂","NO₂","P₄O₆"], answer:"N₂O₅"},
+      {q:"Koji oksid sa vodom gradi fosfornu kiselinu (H₃PO₄)?",
+       options:["P₄O₁₀","SO₃","CO₂","Cl₂O₇","SO₂"], answer:"P₄O₁₀"},
+      {q:"Koji oksid sa vodom gradi perhlornu kiselinu (HClO₄)?",
+       options:["Cl₂O₇","SO₂","CO₂","N₂O₅","P₄O₆"], answer:"Cl₂O₇"},
+      {q:"Koji oksid sa vodom daje mešavinu HNO₃ i HNO₂?",
+       options:["NO₂","SO₃","CO₂","P₄O₆","SO₂"], answer:"NO₂"},
+      {q:"Koji oksid sa vodom gradi hlorastu kiselinu (HClO₂)?",
+       options:["ClO","Cl₂O","Cl₂O₃","Cl₂O₅","Cl₂O₇"], answer:"Cl₂O₃"},
+      {q:"Koji element sa vodonikom gradi hlorovodičnu kiselinu (HCl)?",
+       options:["Cl₂O","Cl₂O₇","HClO","Cl₂","SO₂"], answer:"Cl₂"},
+      {q:"Koji element sa vodonikom gradi bromovodičnu kiselinu (HBr)",
+       options:["SiO₂","SO₂","Br₂","P₄O₁₀","Br₂O₇"], answer:"Br₂"},
+      {q:"Koji oksid sa vodom gradi borovu kiselinu (H₃BO₃)?",
+       options:["B₂O₃","SO₂","CO₂","P₄O₆","Cl₂O₇"], answer:"B₂O₃"},
+      {q:"Koji oksid sa vodom gradi permanganovu kiselinu (HMnO₄)?",
+       options:["MnO₂","Mn₂O₇","SO₂","CO₂","P₄O₁₀"], answer:"Mn₂O₇"},
+      {q:"Koji oksid sa vodom gradi hromnu kiselinu (H₂CrO₄)?",
+       options:["CrO₃","Cr₂O₃","SO₂","CO₂","Cl₂O₇"], answer:"CrO₃"},
+      {q:"Koji oksid sa vodom gradi jodnu kiselinu (HIO₃)?",
+       options:["I₂O₅","SO₂","CO₂","P₄O₆","Cl₂O₇"], answer:"I₂O₅"},
+      {q:"Koji oksid sa vodom gradi bromnu kiselinu (HBrO₃)?",
+       options:["Br₂O","SO₂","Br₂O₅","P₄O₁₀","Cl₂O₇"], answer:"Br₂O₅"},
+      {q:"Koji oksid sa vodom gradi hipobromastu kiselinu (HBrO)?",
+       options:["SeO₃","Br₂O","CO₂","P₄O₆","Br₂O₅"], answer:"Br₂O"},
+      {q:"Koji oksid sa vodom gradi arsenastu kiselinu (H₃AsO₃)?",
+       options:["As₂O₃","SO₂","CO₂","P₄O₁₀","Cl₂O₇"], answer:"As₂O₃"},
+      {q:"Koji oksid sa vodom gradi arsenovu kiselinu (H₃AsO₄)?",
+       options:["As₂O₅","SO₂","CO₂","P₄O₆","Cl₂O₇"], answer:"As₂O₅"},
+      {q:"Koji oksid sa vodom gradi fosforastu kiselinu (H₃PO₃)?",
+       options:["P₄O₆","SO₂","CO₂","Cl₂O₇","N₂O₅"], answer:"P₄O₆"},
+      {q:"Koji oksid sa vodom gradi hipohlorastu kiselinu (HClO)?",
+       options:["Cl₂O","Cl₂O₃","Cl₂O₅","SO₂","CO₂"], answer:"Cl₂O"}
+    ];
+
+    let currentQuestion = 0;
+    let correctCount = 0;
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function loadQuestion(){
+      document.getElementById("reaction").style.display="none";
+      document.getElementById("question").innerText = questions[currentQuestion].q;
+      let optsDiv = document.getElementById("options");
+      optsDiv.innerHTML="";
+      let shuffled = shuffle([...questions[currentQuestion].options]);
+      shuffled.forEach(opt=>{
+        let div=document.createElement("div");
+        div.className="option";
+        div.innerText=opt;
+        div.onclick=()=>checkAnswer(div,opt);
+        optsDiv.appendChild(div);
+      });
+    }
+
+    function checkAnswer(element,opt){
+      let opts=document.querySelectorAll(".option");
+      opts.forEach(o=>o.classList.remove("correct","wrong"));
+      if(opt===questions[currentQuestion].answer){
+        element.classList.add("correct");
+        correctCount++;
+        showReaction();
+      } else {
+        element.classList.add("wrong");
+      }
+    }
+
+    function showReaction(){
+      document.getElementById("reaction").style.display="block";
+      document.getElementById("reactionText").innerText="Tačno! 🎉";
+      setTimeout(()=>{
+        currentQuestion++;
+        if(currentQuestion<questions.length){
+          loadQuestion();
+        } else {
+          showFinal();
+        }
+      },2000);
+    }
+
+    function showFinal(){
+      document.getElementById("question").style.display="none";
+      document.getElementById("options").style.display="none";
+      document.getElementById("reaction").style.display="none";
+      document.getElementById("final").style.display="block";
+      new p5((sketch)=>{
+        let fireworks=[];
+        sketch.setup=()=>{sketch.createCanvas(500,300).parent("fireworks");};
+        sketch.draw=()=>{
+          sketch.background(0,50);
+          if(Math.random()<0.05) fireworks.push(new Firework(sketch));
+          fireworks.forEach(f=>f.update());
+          fireworks=fireworks.filter(f=>!f.done);
+        };
+        class Firework{
+          constructor(s){this.s=s;this.x=Math.random()*500;this.y=300;this.p=[];this.done=false;}
+          update(){
+            if(this.y>150){this.y-=5;this.s.fill(255);this.s.ellipse(this.x,this.y,5,5);}
+            else{
+              if(this.p.length===0){
+                for(let i=0;i<50;i++){
+                  this.p.push({x:this.x,y:this.y,vx:(Math.random()-0.5)*4,vy:(Math.random()-0.5)*4,life:100});
+                }
+              }
+              this.p.forEach(p=>{
+                p.x+=p.vx;p.y+=p.vy;p.life--;
+                this.s.fill(Math.random()*255,Math.random()*255,Math.random()*255);
+                this.s.ellipse(p.x,p.y,3,3);
+              });
+              this.p=this.p.filter(p=>p.life>0);
+              if(this.p.length===0) this.done=true;
+            }
+          }
+        }
+      });
+    }
+
+    loadQuestion();
+  </script>
+</body>
+</html>
